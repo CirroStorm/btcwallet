@@ -96,7 +96,7 @@ func (l *Loader) RunAfterLoad(fn func(*Wallet)) {
 // passphrases.  The seed is optional.  If non-nil, addresses are derived from
 // this seed.  If nil, a secure random seed is generated.
 func (l *Loader) CreateNewWallet(pubPassphrase, privPassphrase, seed []byte,
-	bday time.Time) (*Wallet, error) {
+	bday time.Time, hwConfig *waddrmgr.HwConfig) (*Wallet, error) {
 
 	defer l.mu.Unlock()
 	l.mu.Lock()
@@ -126,14 +126,14 @@ func (l *Loader) CreateNewWallet(pubPassphrase, privPassphrase, seed []byte,
 
 	// Initialize the newly created database for the wallet before opening.
 	err = Create(
-		db, pubPassphrase, privPassphrase, seed, l.chainParams, bday,
+		db, pubPassphrase, privPassphrase, seed, l.chainParams, bday, hwConfig,
 	)
 	if err != nil {
 		return nil, err
 	}
 
 	// Open the newly-created wallet.
-	w, err := Open(db, pubPassphrase, nil, l.chainParams, l.recoveryWindow)
+	w, err := Open(db, pubPassphrase, nil, l.chainParams, l.recoveryWindow, hwConfig)
 	if err != nil {
 		return nil, err
 	}
@@ -153,7 +153,7 @@ func noConsole() ([]byte, error) {
 // and the public passphrase.  If the loader is being called by a context where
 // standard input prompts may be used during wallet upgrades, setting
 // canConsolePrompt will enables these prompts.
-func (l *Loader) OpenExistingWallet(pubPassphrase []byte, canConsolePrompt bool) (*Wallet, error) {
+func (l *Loader) OpenExistingWallet(pubPassphrase []byte, canConsolePrompt bool, hwConfig *waddrmgr.HwConfig) (*Wallet, error) {
 	defer l.mu.Unlock()
 	l.mu.Lock()
 
@@ -186,7 +186,7 @@ func (l *Loader) OpenExistingWallet(pubPassphrase []byte, canConsolePrompt bool)
 			ObtainPrivatePass: noConsole,
 		}
 	}
-	w, err := Open(db, pubPassphrase, cbs, l.chainParams, l.recoveryWindow)
+	w, err := Open(db, pubPassphrase, cbs, l.chainParams, l.recoveryWindow, hwConfig)
 	if err != nil {
 		// If opening the wallet fails (e.g. because of wrong
 		// passphrase), we must close the backing database to

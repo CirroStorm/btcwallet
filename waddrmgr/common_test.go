@@ -275,12 +275,12 @@ func setupManager(t *testing.T) (tearDownFunc func(), db walletdb.DB, mgr *Manag
 		}
 		err = Create(
 			ns, seed, pubPassphrase, privPassphrase,
-			&chaincfg.MainNetParams, fastScrypt, time.Time{},
+			&chaincfg.MainNetParams, fastScrypt, time.Time{}, nil,
 		)
 		if err != nil {
 			return err
 		}
-		mgr, err = Open(ns, pubPassphrase, &chaincfg.MainNetParams)
+		mgr, err = Open(ns, pubPassphrase, &chaincfg.MainNetParams, nil)
 		return err
 	})
 	if err != nil {

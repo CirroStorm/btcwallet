@@ -348,11 +348,11 @@ func TstCreatePool(t *testing.T) (tearDownFunc func(), db walletdb.DB, pool *Poo
 		}
 		fastScrypt := &waddrmgr.ScryptOptions{N: 16, R: 8, P: 1}
 		err = waddrmgr.Create(addrmgrNs, seed, pubPassphrase, privPassphrase,
-			&chaincfg.MainNetParams, fastScrypt, time.Now())
+			&chaincfg.MainNetParams, fastScrypt, time.Now(), nil)
 		if err != nil {
 			return err
 		}
-		addrMgr, err = waddrmgr.Open(addrmgrNs, pubPassphrase, &chaincfg.MainNetParams)
+		addrMgr, err = waddrmgr.Open(addrmgrNs, pubPassphrase, &chaincfg.MainNetParams, nil)
 		if err != nil {
 			return err
 		}

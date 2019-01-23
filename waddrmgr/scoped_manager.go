@@ -170,6 +170,8 @@ type ScopedKeyManager struct {
 	deriveOnUnlock []*unlockDeriveInfo
 
 	mtx sync.RWMutex
+
+	keyMaker KeyMaker
 }
 
 // Scope returns the exact KeyScope of this scoped key manager.
@@ -1251,36 +1253,10 @@ func (s *ScopedKeyManager) newAccount(ns walletdb.ReadWriteBucket,
 		return managerError(ErrDuplicateAccount, str, err)
 	}
 
-	// Fetch the cointype key which will be used to derive the next account
-	// extended keys
-	_, coinTypePrivEnc, err := fetchCoinTypeKeys(ns, &s.scope)
-	if err != nil {
-		return err
-	}
-
-	// Decrypt the cointype key.
-	serializedKeyPriv, err := s.rootManager.cryptoKeyPriv.Decrypt(coinTypePrivEnc)
-	if err != nil {
-		str := fmt.Sprintf("failed to decrypt cointype serialized private key")
-		return managerError(ErrLocked, str, err)
-	}
-	coinTypeKeyPriv, err := hdkeychain.NewKeyFromString(string(serializedKeyPriv))
-	zero.Bytes(serializedKeyPriv)
-	if err != nil {
-		str := fmt.Sprintf("failed to create cointype extended private key")
-		return managerError(ErrKeyChain, str, err)
-	}
-
 	// Derive the account key using the cointype key
-	acctKeyPriv, err := deriveAccountKey(coinTypeKeyPriv, account)
-	coinTypeKeyPriv.Zero()
+	acctKeyPriv, acctKeyPub, err := s.keyMaker.DeriveAccountKey(s.scope, account, ns, s.rootManager.cryptoKeyPriv)
 	if err != nil {
-		str := "failed to convert private key for account"
-		return managerError(ErrKeyChain, str, err)
-	}
-	acctKeyPub, err := acctKeyPriv.Neuter()
-	if err != nil {
-		str := "failed to convert public key for account"
+		str := "failed to derive account key"
 		return managerError(ErrKeyChain, str, err)
 	}
 
@@ -1292,12 +1268,16 @@ func (s *ScopedKeyManager) newAccount(ns walletdb.ReadWriteBucket,
 		str := "failed to  encrypt public key for account"
 		return managerError(ErrCrypto, str, err)
 	}
-	acctPrivEnc, err := s.rootManager.cryptoKeyPriv.Encrypt(
-		[]byte(acctKeyPriv.String()),
-	)
-	if err != nil {
-		str := "failed to encrypt private key for account"
-		return managerError(ErrCrypto, str, err)
+
+	var acctPrivEnc []byte
+	if acctKeyPriv != nil {
+		acctPrivEnc, err = s.rootManager.cryptoKeyPriv.Encrypt(
+			[]byte(acctKeyPriv.String()),
+		)
+		if err != nil {
+			str := "failed to encrypt private key for account"
+			return managerError(ErrCrypto, str, err)
+		}
 	}
 
 	// We have the encrypted account extended keys, so save them to the

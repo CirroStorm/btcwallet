@@ -5,6 +5,7 @@
 package main
 
 import (
+	"github.com/btcsuite/btcwallet/waddrmgr"
 	"io/ioutil"
 	"net"
 	"net/http"
@@ -90,10 +91,15 @@ func walletMain() error {
 		startWalletRPCServices(w, rpcs, legacyRPCServer)
 	})
 
+	var hwConfig *waddrmgr.HwConfig
+	if cfg.HwRpcNetworkAddress != "" {
+		hwConfig = &waddrmgr.HwConfig{RpcNetworkAddress: cfg.HwRpcNetworkAddress, RpcUsername: cfg.HwRpcUsername, RpcPassword: cfg.HwRpcPassword}
+	}
+
 	if !cfg.NoInitialLoad {
 		// Load the wallet database.  It must have been created already
 		// or this will return an appropriate error.
-		_, err = loader.OpenExistingWallet([]byte(cfg.WalletPass), true)
+		_, err = loader.OpenExistingWallet([]byte(cfg.WalletPass), true, hwConfig)
 		if err != nil {
 			log.Error(err)
 			return err

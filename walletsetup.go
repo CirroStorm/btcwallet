@@ -192,8 +192,13 @@ func createWallet(cfg *config) error {
 		return err
 	}
 
+	var hwConfig *waddrmgr.HwConfig
+	if cfg.HwRpcNetworkAddress != "" {
+		hwConfig = &waddrmgr.HwConfig{RpcNetworkAddress: cfg.HwRpcNetworkAddress, RpcUsername: cfg.HwRpcUsername, RpcPassword: cfg.HwRpcPassword}
+	}
+
 	fmt.Println("Creating the wallet...")
-	w, err := loader.CreateNewWallet(pubPass, privPass, seed, time.Now())
+	w, err := loader.CreateNewWallet(pubPass, privPass, seed, time.Now(), hwConfig)
 	if err != nil {
 		return err
 	}
@@ -226,7 +231,7 @@ func createSimulationWallet(cfg *config) error {
 	defer db.Close()
 
 	// Create the wallet.
-	err = wallet.Create(db, pubPass, privPass, nil, activeNet.Params, time.Now())
+	err = wallet.Create(db, pubPass, privPass, nil, activeNet.Params, time.Now(), nil)
 	if err != nil {
 		return err
 	}

@@ -722,8 +722,13 @@ func (s *loaderServer) CreateWallet(ctx context.Context, req *pb.CreateWalletReq
 		pubPassphrase = []byte(wallet.InsecurePubPassphrase)
 	}
 
+	var hwConfig *waddrmgr.HwConfig
+	if req.HwConfig != nil && req.HwConfig.NetworkAddress != "" {
+		hwConfig = &waddrmgr.HwConfig{RpcNetworkAddress: req.HwConfig.NetworkAddress, RpcUsername: req.HwConfig.Username, RpcPassword: string(req.HwConfig.Password)}
+	}
+
 	wallet, err := s.loader.CreateNewWallet(
-		pubPassphrase, req.PrivatePassphrase, req.Seed, time.Now(),
+		pubPassphrase, req.PrivatePassphrase, req.Seed, time.Now(), hwConfig,
 	)
 	if err != nil {
 		return nil, translateError(err)
@@ -747,7 +752,12 @@ func (s *loaderServer) OpenWallet(ctx context.Context, req *pb.OpenWalletRequest
 		pubPassphrase = []byte(wallet.InsecurePubPassphrase)
 	}
 
-	wallet, err := s.loader.OpenExistingWallet(pubPassphrase, false)
+	var hwConfig *waddrmgr.HwConfig
+	if req.HwConfig != nil && req.HwConfig.NetworkAddress != "" {
+		hwConfig = &waddrmgr.HwConfig{RpcNetworkAddress: req.HwConfig.NetworkAddress, RpcUsername: req.HwConfig.Username, RpcPassword: string(req.HwConfig.Password)}
+	}
+
+	wallet, err := s.loader.OpenExistingWallet(pubPassphrase, false, hwConfig)
 	if err != nil {
 		return nil, translateError(err)
 	}

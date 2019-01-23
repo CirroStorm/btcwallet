@@ -106,6 +106,11 @@ type config struct {
 
 	// Deprecated options
 	DataDir *cfgutil.ExplicitString `short:"b" long:"datadir" default-mask:"-" description:"DEPRECATED -- use appdata instead"`
+
+	// Hardware wallet options
+	HwRpcNetworkAddress string                  `long:"hwrpcnetworkaddress" description:"Hostname/IP and port of hardware wallet RPC server to connect to"`
+	HwRpcUsername       string                  `long:"hwrpcusername" description:"Username for hardware wallet rpc authentication"`
+	HwRpcPassword       string                  `long:"hwrpcpassword" default-mask:"-" description:"Password for hardware wallet rpc authentication"`
 }
 
 // cleanAndExpandPath expands environement variables and leading ~ in the

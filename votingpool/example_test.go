@@ -43,11 +43,11 @@ var (
 
 func createWaddrmgr(ns walletdb.ReadWriteBucket, params *chaincfg.Params) (*waddrmgr.Manager, error) {
 	err := waddrmgr.Create(ns, seed, pubPassphrase, privPassphrase, params,
-		fastScrypt, time.Now())
+		fastScrypt, time.Now(), nil)
 	if err != nil {
 		return nil, err
 	}
-	return waddrmgr.Open(ns, pubPassphrase, params)
+	return waddrmgr.Open(ns, pubPassphrase, params, nil)
 }
 
 func ExampleCreate() {

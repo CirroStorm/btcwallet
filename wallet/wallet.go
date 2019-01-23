@@ -3476,7 +3476,7 @@ func (w *Wallet) Database() walletdb.DB {
 // seed is non-nil, it is used.  Otherwise, a secure random seed of the
 // recommended length is generated.
 func Create(db walletdb.DB, pubPass, privPass, seed []byte, params *chaincfg.Params,
-	birthday time.Time) error {
+	birthday time.Time, hwConfig *waddrmgr.HwConfig) error {
 
 	// If a seed was provided, ensure that it is of valid length. Otherwise,
 	// we generate a random seed for the wallet with the recommended seed
@@ -3506,7 +3506,7 @@ func Create(db walletdb.DB, pubPass, privPass, seed []byte, params *chaincfg.Par
 
 		err = waddrmgr.Create(
 			addrmgrNs, seed, pubPass, privPass, params, nil,
-			birthday,
+			birthday, hwConfig,
 		)
 		if err != nil {
 			return err
@@ -3517,7 +3517,7 @@ func Create(db walletdb.DB, pubPass, privPass, seed []byte, params *chaincfg.Par
 
 // Open loads an already-created wallet from the passed database and namespaces.
 func Open(db walletdb.DB, pubPass []byte, cbs *waddrmgr.OpenCallbacks,
-	params *chaincfg.Params, recoveryWindow uint32) (*Wallet, error) {
+	params *chaincfg.Params, recoveryWindow uint32, hwConfig *waddrmgr.HwConfig) (*Wallet, error) {
 
 	var (
 		addrMgr *waddrmgr.Manager
@@ -3545,7 +3545,7 @@ func Open(db walletdb.DB, pubPass []byte, cbs *waddrmgr.OpenCallbacks,
 			return err
 		}
 
-		addrMgr, err = waddrmgr.Open(addrMgrBucket, pubPass, params)
+		addrMgr, err = waddrmgr.Open(addrMgrBucket, pubPass, params, hwConfig)
 		if err != nil {
 			return err
 		}

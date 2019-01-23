@@ -78,6 +78,7 @@ type testContext struct {
 	create       bool
 	unlocked     bool
 	watchingOnly bool
+	hwConfig     *HwConfig
 }
 
 // addrType is the type of address being tested
@@ -1663,7 +1664,7 @@ func testWatchingOnly(tc *testContext) bool {
 	err = walletdb.View(db, func(tx walletdb.ReadTx) error {
 		ns := tx.ReadBucket(waddrmgrNamespaceKey)
 		var err error
-		mgr, err = Open(ns, pubPassphrase, &chaincfg.MainNetParams)
+		mgr, err = Open(ns, pubPassphrase, &chaincfg.MainNetParams, tc.hwConfig)
 		return err
 	})
 	if err != nil {
@@ -1702,7 +1703,7 @@ func testWatchingOnly(tc *testContext) bool {
 	err = walletdb.View(db, func(tx walletdb.ReadTx) error {
 		ns := tx.ReadBucket(waddrmgrNamespaceKey)
 		var err error
-		mgr, err = Open(ns, pubPassphrase, &chaincfg.MainNetParams)
+		mgr, err = Open(ns, pubPassphrase, &chaincfg.MainNetParams, tc.hwConfig)
 		return err
 	})
 	if err != nil {
@@ -1789,14 +1790,24 @@ func testSync(tc *testContext) bool {
 func TestManager(t *testing.T) {
 	t.Parallel()
 
+	testManager(t, false)
+	//testManager(t, true)
+}
+
+func testManager(t *testing.T, hw bool) {
 	teardown, db := emptyDB(t)
 	defer teardown()
+
+	var hwConfig *HwConfig
+	if hw {
+		hwConfig = &HwConfig{ "localhost:42123", "test", "test"}
+	}
 
 	// Open manager that does not exist to ensure the expected error is
 	// returned.
 	err := walletdb.View(db, func(tx walletdb.ReadTx) error {
 		ns := tx.ReadBucket(waddrmgrNamespaceKey)
-		_, err := Open(ns, pubPassphrase, &chaincfg.MainNetParams)
+		_, err := Open(ns, pubPassphrase, &chaincfg.MainNetParams, hwConfig)
 		return err
 	})
 	if !checkManagerError(t, "Open non-existant", err, ErrNoExist) {
@@ -1812,12 +1823,12 @@ func TestManager(t *testing.T) {
 		}
 		err = Create(
 			ns, seed, pubPassphrase, privPassphrase,
-			&chaincfg.MainNetParams, fastScrypt, time.Time{},
+			&chaincfg.MainNetParams, fastScrypt, time.Time{}, hwConfig,
 		)
 		if err != nil {
 			return err
 		}
-		mgr, err = Open(ns, pubPassphrase, &chaincfg.MainNetParams)
+		mgr, err = Open(ns, pubPassphrase, &chaincfg.MainNetParams, hwConfig)
 		return err
 	})
 	if err != nil {
@@ -1834,7 +1845,7 @@ func TestManager(t *testing.T) {
 		ns := tx.ReadWriteBucket(waddrmgrNamespaceKey)
 		return Create(
 			ns, seed, pubPassphrase, privPassphrase,
-			&chaincfg.MainNetParams, fastScrypt, time.Time{},
+			&chaincfg.MainNetParams, fastScrypt, time.Time{}, hwConfig,
 		)
 	})
 	if !checkManagerError(t, "Create existing", err, ErrAlreadyExists) {
@@ -1856,6 +1867,7 @@ func TestManager(t *testing.T) {
 		account:      0,
 		create:       true,
 		watchingOnly: false,
+		hwConfig:     hwConfig,
 	})
 	mgr.Close()
 
@@ -1864,7 +1876,7 @@ func TestManager(t *testing.T) {
 	err = walletdb.View(db, func(tx walletdb.ReadTx) error {
 		ns := tx.ReadBucket(waddrmgrNamespaceKey)
 		var err error
-		mgr, err = Open(ns, pubPassphrase, &chaincfg.MainNetParams)
+		mgr, err = Open(ns, pubPassphrase, &chaincfg.MainNetParams, hwConfig)
 		return err
 	})
 	if err != nil {
@@ -1931,7 +1943,7 @@ func TestManagerHigherVersion(t *testing.T) {
 	// should expect to see the error ErrUpgrade.
 	err = walletdb.View(db, func(tx walletdb.ReadTx) error {
 		ns := tx.ReadBucket(waddrmgrNamespaceKey)
-		_, err := Open(ns, pubPassphrase, &chaincfg.MainNetParams)
+		_, err := Open(ns, pubPassphrase, &chaincfg.MainNetParams, nil)
 		return err
 	})
 	if !checkManagerError(t, "Upgrade needed", err, ErrUpgrade) {
@@ -1955,7 +1967,7 @@ func TestManagerHigherVersion(t *testing.T) {
 	// ErrUpgrade.
 	err = walletdb.View(db, func(tx walletdb.ReadTx) error {
 		ns := tx.ReadBucket(waddrmgrNamespaceKey)
-		_, err := Open(ns, pubPassphrase, &chaincfg.MainNetParams)
+		_, err := Open(ns, pubPassphrase, &chaincfg.MainNetParams, nil)
 		return err
 	})
 	if !checkManagerError(t, "Upgrade needed", err, ErrUpgrade) {
@@ -2077,13 +2089,13 @@ func TestScopedKeyManagerManagement(t *testing.T) {
 		}
 		err = Create(
 			ns, seed, pubPassphrase, privPassphrase,
-			&chaincfg.MainNetParams, fastScrypt, time.Time{},
+			&chaincfg.MainNetParams, fastScrypt, time.Time{}, nil,
 		)
 		if err != nil {
 			return err
 		}
 
-		mgr, err = Open(ns, pubPassphrase, &chaincfg.MainNetParams)
+		mgr, err = Open(ns, pubPassphrase, &chaincfg.MainNetParams, nil)
 		if err != nil {
 			return err
 		}
@@ -2235,7 +2247,7 @@ func TestScopedKeyManagerManagement(t *testing.T) {
 	err = walletdb.View(db, func(tx walletdb.ReadTx) error {
 		ns := tx.ReadBucket(waddrmgrNamespaceKey)
 		var err error
-		mgr, err = Open(ns, pubPassphrase, &chaincfg.MainNetParams)
+		mgr, err = Open(ns, pubPassphrase, &chaincfg.MainNetParams, nil)
 		if err != nil {
 			return err
 		}
@@ -2326,13 +2338,13 @@ func TestRootHDKeyNeutering(t *testing.T) {
 		}
 		err = Create(
 			ns, seed, pubPassphrase, privPassphrase,
-			&chaincfg.MainNetParams, fastScrypt, time.Time{},
+			&chaincfg.MainNetParams, fastScrypt, time.Time{}, nil,
 		)
 		if err != nil {
 			return err
 		}
 
-		mgr, err = Open(ns, pubPassphrase, &chaincfg.MainNetParams)
+		mgr, err = Open(ns, pubPassphrase, &chaincfg.MainNetParams, nil)
 		if err != nil {
 			return err
 		}
@@ -2418,13 +2430,13 @@ func TestNewRawAccount(t *testing.T) {
 		}
 		err = Create(
 			ns, seed, pubPassphrase, privPassphrase,
-			&chaincfg.MainNetParams, fastScrypt, time.Time{},
+			&chaincfg.MainNetParams, fastScrypt, time.Time{}, nil,
 		)
 		if err != nil {
 			return err
 		}
 
-		mgr, err = Open(ns, pubPassphrase, &chaincfg.MainNetParams)
+		mgr, err = Open(ns, pubPassphrase, &chaincfg.MainNetParams, nil)
 		if err != nil {
 			return err
 		}

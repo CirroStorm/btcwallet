@@ -80,6 +80,12 @@ message AccountBalance {
 	int64 total_balance = 2;
 }
 
+message HwConfig {
+	string network_address = 1;
+	string username = 2;
+	bytes password = 3;
+}
+
 message PingRequest {}
 message PingResponse {}
 
@@ -292,11 +298,13 @@ message CreateWalletRequest {
 	bytes public_passphrase = 1;
 	bytes private_passphrase = 2;
 	bytes seed = 3;
+	HwConfig hw_config = 4;
 }
 message CreateWalletResponse {}
 
 message OpenWalletRequest {
 	bytes public_passphrase = 1;
+	HwConfig hw_config = 2;
 }
 message OpenWalletResponse {}
 
